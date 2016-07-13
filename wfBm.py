@@ -6,33 +6,49 @@ from scipy import stats
 def save_data(num_stimuli):
 	for hurst in [0.2, 0.4, 0.6, 0.8]:
 		# Experiment A
-		with open('./data/H' + int(hurst*10) + '/exp-a/dataset.json', 'w') as outfile:
+		with open('data/H' + str(int(hurst*10)) + '-a.json', 'w') as outfile:
 			dataset= []
 			for corr in [0.9, -0.9]:
 				for i in range(num_stimuli):
-						bms = wfBm(H1= hurst, corr=corr)
-						dataset.append(bms)
-			json.dumps(dataset, outfile)
+					print(i)
+					bms = wfBm(H1= hurst, corr=corr)
+					dataset.append(bms)
+			json.dump(dataset, outfile)
+		print('A done')
 
 		# Experiment B # ADD DALC
 		for corr in [0.9, -0.9]:
 			for sensLabel in ['steep', 'shallow']:
-				if corr > 0: 
-					corrLabel = 'positive'
-				elif corr < 0: 
-					corrLabel = 'negative'
-				if sensLabel = 'steep':
-					slopeCoeffs = [2,4]
-				else:
-					slopeCoeffs = [0,2]
-				with open('./data/H' + int(hurst*10) + '/exp-b/' + corrLabel + sensLabel + '/dataset.json', 'w') as outfile:
+				corrLabel = 'positive' if corr > 0 else 'negative'
+				slopeCoeffs = [2,4] if sensLabel == 'steep' else [0,2]
+
+				with open('data/H' + str(int(hurst*10)) + '-b-' + corrLabel + '-' + sensLabel + '.json', 'w') as outfile:
 					dataset= []
 					for i in range(num_stimuli):
+						print(i)
 						bms = wfBm(H1= hurst, corr = corr, minDiff = 0.2, slopeCoeffs = slopeCoeffs)
 						dataset.append(bms)
-					json.dumps(dataset, outfile)
+					json.dump(dataset, outfile)
+		print('B done')
 
-	pass
+		# Experiment C # ADD DALC
+		for corr in [0.9, -0.9]:
+			for sensLabel in ['steep', 'shallow']:
+				corrLabel = 'positive' if corr > 0 else 'negative'
+				with open('data/H' + str(int(hurst*10)) + '-c-' + corrLabel + '-' + sensLabel + '.json', 'w') as outfile:
+					dataset=[]
+					while i < num_stimuli:
+						slopeCoeffs = [2,4] if sensLabel == 'steep' else [0,2]
+						bms1 = wfBm(H1= hurst, corr = corr, minDiff = 0.2, slopeCoeffs = slopeCoeffs)
+						bms2 = wfBm(H1= hurst, corr = corr, minDiff = 0.2, slopeCoeffs = slopeCoeffs)
+						if abs(abs(bms1['Blue range value'] - bms1['Green range value']) - 
+									abs(bms2['Blue range value'] - bms2['Green range value'])) > 0.2:
+							# Diff at the highest level of interaction
+							print(i)
+							i += 1
+							dataset.append([bms1, bms2])
+					json.dump(dataset, outfile)
+		print('C done')
 
 def wfBm(N = 100, H1=8./10., corr=0.9, study=True, minDiff = 0, slopeCoeffs = [0,4], DALC = False):
 	dataset = {}
@@ -89,39 +105,46 @@ def wfBm(N = 100, H1=8./10., corr=0.9, study=True, minDiff = 0, slopeCoeffs = [0
 			# check conditions, randomize start 
 			rangeArrs = []
 			if study:
+				should_continue = False
 				for i in range(2):
 					if min(bm[i]) == 0: 
 						extV = max(bm[i])
-						rangeArrs[i] = [0, extV]
-
 						if extV < 0.2:
+							should_continue = True
 							break
+
 						# shift up by random number not exceeding 1-extV
 						randV = random.random() * (1-extV)
 						bm[i] = [n + randV for n in bm[i]]
+						rangeArrs.append([min(bm[i]), max(bm[i])])
 					else: 
 						# range is [extV, 1]
 						extV = min(bm[i])
-						rangeArrs[i] = [extV, 1]
-						if extV > 0.8 or abs(rangeArrs[0][1] - (1-extV)) < minDiff:
-							# second condition: difference in range is at least minDiff
+						if extV > 0.8:
+							should_continue = True
 							break
+
 						# shift down by random number not exceeding extV
 						randV = random.random() * extV
 						bm[i] = [n - randV for n in bm[i]]
-				else:
-					# minimum conditions met
-					continue
-				break # not met
+						rangeArrs.append([min(bm[i]), max(bm[i])])
+
+				if should_continue \
+					or abs(numpy.diff(rangeArrs[0]) - numpy.diff(rangeArrs[1])) < 0.2: 
+					continue # generate new series 
 
 			# regression
 			slope, intercept, r_value, p_value, std_err = stats.linregress(bm[0],bm[1])
 
 			# pi/16 = 11.25, pi/8 = 22.5
-			if abs(slope) >= math.tan(math.pi/8)*minSlopeCoeff and abs(slope) <= math.tan(math.pi/8)*maxSlopeCoeff:
-				dataset['Data'] = bm
-				dataset['Blue range'] = rangeArr[0]
-				dataset['Green range'] = rangeArr[1]
+			if abs(slope) >= math.tan(slopeCoeffs[0]*math.pi/8) and abs(slope) <= math.tan(slopeCoeffs[1]*math.pi/8):
+				print(slope)
+				dataset['values1'] = bm[0].tolist()
+				dataset['values2'] = bm[1].tolist()
+				dataset['Blue range'] = rangeArrs[0]
+				dataset['Blue range value'] = rangeArrs[0][1] - rangeArrs[0][0]
+				dataset['Green range'] = rangeArrs[1]
+				dataset['Green range value'] = rangeArrs[1][1] - rangeArrs[1][0] 
 				dataset['Regression slope'] = slope
 				dataset['Correlation'] = float(r)
 				dataset['Sign of correlation'] = numpy.sign(r)
@@ -131,6 +154,8 @@ def wfBm(N = 100, H1=8./10., corr=0.9, study=True, minDiff = 0, slopeCoeffs = [0
 					dataset['Steepness'] = 'Shallow'
 				
 				return dataset
+			else:
+				continue
 
 			# if slope >= math.tan(math.pi/8)*0 and slope <= math.tan(math.pi/8)*1:
 			# 	dataset['slopeCat'] = 1
@@ -138,17 +163,21 @@ def wfBm(N = 100, H1=8./10., corr=0.9, study=True, minDiff = 0, slopeCoeffs = [0
 def show(type = 'CS'):
 	rhos = []
 	for i in range(1000):
-		bms = wfBm(corr=0.9)
+		hurst = 0.2
+		corr = 0.9
+		minDiff = 0.2
+		slopeCoeffs = [2,4]
+		bms = wfBm(H1= hurst, corr = corr, minDiff = 0.2, slopeCoeffs = slopeCoeffs)
 		if type == "DALC":
-			plt.plot(bms[0])
-			plt.plot(bms[1])
+			plt.plot(bms['values1'])
+			plt.plot(bms['values2'])
 		else:
 			ax = plt.gca()
 			ax.set_autoscale_on(False)
 			ax.set_aspect('equal')
-			plt.plot(bms[0],bms[1])
+			plt.plot(bms['values1'],bms['values2'])
 		plt.show()
-		return
+	return
 	# 	rhos.append(corr)
 	# plt.hist(rhos)
 	# plt.show()
