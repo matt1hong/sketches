@@ -4,101 +4,75 @@ import numpy.linalg as la
 from scipy import stats
 # numpy.random.seed(2)
 
-def py_ang(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'    """
-    cosang = np.dot(v1, v2)
-    sinang = la.norm(np.cross(v1, v2))
-    return np.arctan2(sinang, cosang)
+def get_angle(slope1, slope2):
+    ''' compute angle (in degrees) for p0p1p2 corner
+    Inputs:
+        p0,p1,p2 - points in the form of [x,y]
+    '''
+    p0 = [1, slope1]
+    p1=numpy.array([0,0])
+    p2 = [1, slope2]
+    if p2 is None:
+        p2 = p1 + numpy.array([1, 0])
+    v0 = numpy.array(p0) - numpy.array(p1)
+    v1 = numpy.array(p2) - numpy.array(p1)
+
+    angle = numpy.math.atan2(numpy.linalg.det([v0,v1]),numpy.dot(v0,v1))
+    return numpy.degrees(angle)
 
 def save_data(num_stimuli):
 	for hurst in [0.2, 0.4, 0.6, 0.8]:
-	# 	# Experiment A
-	# 	with open('data/H' + str(int(hurst*10)) + '-a.json', 'w') as outfile:
-	# 		datasetA = []
-	# 		for corr in [0.9, -0.9]:
-	# 			for i in range(num_stimuli):
-	# 				print(i)
-	# 				bms = wfBm(H1= hurst, corr=corr)
-	# 				datasetA.append(bms)
-	# 		json.dump(dataset, outfile)
-	# 	print('A done')
+		# Experiment A
+		# with open('data/H' + str(int(hurst*10)) + '-a.json', 'w') as outfile:
+		# 	datasetA = []
+		# 	for corr in [0.9, -0.9]:
+		# 		for i in range(num_stimuli):
+		# 			print(i)
+		# 			bms = wfBm(H1= hurst, corr=corr, avoid_angles = 4)
+		# 			datasetA.append(bms)
+		# 	json.dump(dataset, outfile)
+		# print('A done')
 
-		# Experiment B # ADD DALC
+		# # Experiment B # ADD DALC
 		# for corr in [0.9, -0.9]:
-		# 	corrLabel = 'positive' if corr > 0 else 'negative'
+		# 	if corr > 0:
+		# 		corrLabel = 'positive'
+		# 	else:
+		# 		corrLabel = 'negative'
 		# 	with open('data/H' + str(int(hurst*10)) + '-b-' + corrLabel + '.json', 'w') as outfile:
 		# 		dataset= []
 		# 		for slopeCoeffs in [[2,4],[0,2]]:
+		# 			# Mix up steeps and shallows
 		# 			for i in range(num_stimuli):
 		# 				print(i)
-		# 				bms = wfBm(H1= hurst, corr = corr, minDiff = 0.2, slopeCoeffs = slopeCoeffs)
+		# 				bms = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles = 2)
 		# 				dataset.append(bms)
 		# 		json.dump(dataset, outfile)
 		# print('B done')
 
 		# Experiment C # ADD DALC
-		for corr in [0.9, -0.9]:
-			for sensLabel in ['steep', 'shallow']:
+		for corr in [-0.9]:
+			for sensLabel in ['shallow']:
 				i = 0
-				corrLabel = 'positive' if corr > 0 else 'negative'
+				slopeCoeffs = [2,4] if sensLabel == 'steep' else [0,2]
+				if corr > 0:
+					corrLabel = 'positive'
+				else:
+					corrLabel = 'negative'
 				with open('data/H' + str(int(hurst*10)) + '-c-' + corrLabel + '-' + sensLabel + '.json', 'w') as outfile:
 					dataset=[]
 					while i < num_stimuli:
-						slopeCoeffs = [2,4] if sensLabel == 'steep' else [0,2]
-						bms1 = wfBm(H1= hurst, corr = corr, minDiff = 0.2, slopeCoeffs = slopeCoeffs)
-						bms2 = wfBm(H1= hurst, corr = corr, minDiff = 0.2, slopeCoeffs = slopeCoeffs)
+						bms1 = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles=2)
+						bms2 = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles=2)
 
-						print('hi')
-						# scale = ((random.random()-0.5)*0.6+0.5)
-
-						# bms1['values1'] = [n * 0.6 for n in bms1['values1']]
-
-						# ax = plt.gca()
-						# ax.set_autoscale_on(False)
-						# ax.set_aspect('equal')
-						# plt.plot(bms1['values1'],bms1['values2'])
-						# plt.show()
-						# ax = plt.gca()
-						# ax.set_autoscale_on(False)
-						# ax.set_aspect('equal')
-						# plt.plot(bms2['values1'],bms2['values2'])
-						# plt.show()
-						print(abs(bms1['Regression slope']))
-						print(abs(bms2['Regression slope']))
-						plt.plot(bms1['values1'])
-						plt.plot(bms1['values2'])
-						plt.show()
-						plt.plot(bms2['values1'])
-						plt.plot(bms2['values2'])
-						plt.show()
-						# if abs(abs(bms1['Blue range value'] - bms1['Green range value']) - 
-						# 			abs(bms2['Blue range value'] - bms2['Green range value'])) > 0.2:
-						if 
-							# Diff at the highest level of interaction
-							# ax = plt.gca()
-							# ax.set_autoscale_on(False)
-							# ax.set_aspect('equal')
-							# plt.plot(bms1['values1'],bms1['values2'])
-							# plt.show()
-							# ax = plt.gca()
-							# ax.set_autoscale_on(False)
-							# ax.set_aspect('equal')
-							# plt.plot(bms2['values1'],bms2['values2'])
-							# plt.show()
-
-							plt.plot(bms1['values1'])
-							plt.plot(bms1['values2'])
-							plt.show()
-							plt.plot(bms2['values1'])
-							plt.plot(bms2['values2'])
-							plt.show()
+						if get_angle(bms1['Regression slope'], bms2['Regression slope']) > 10:
 							print(i)
 							i += 1
 							dataset.append([bms1, bms2])
 					json.dump(dataset, outfile)
 		print('C done')
 
-def wfBm(N = 100, H1=8./10., corr=0.9, study=True, minDiff = 0, slopeCoeffs = [0,4], DALC = False):
+def wfBm(N = 100, H1=8./10., corr=0.9, minDiff = 0, slopeCoeffs = [0,4], DALC = False, avoid_angles = None):
 	dataset = {}
 
 	H2 = H1
@@ -143,64 +117,77 @@ def wfBm(N = 100, H1=8./10., corr=0.9, study=True, minDiff = 0, slopeCoeffs = [0
 		# check criteria and return if met
 		if abs(float(r) - corr) < 0.05:
 			count += 1
-			print(count)
+			# print('Count: ' + str(count))
 			# normalize
 			for i in range(2):
 				minV = min(bm[i])
 				if minV < 0:
 					bm[i] = [v - minV for v in bm[i]]
 
-			lim = 10
+			lim = 30
 			maxV = max([inner for outer in bm for inner in outer])
 			if maxV > lim: 
 				over_lim += 1
-				print(str(over_lim) + " over 10")
+				print(str(over_lim) + " over " + str(lim))
 				continue
 			bm[0] = [v/lim for v in bm[0]]
 			bm[1] = [v/lim for v in bm[1]]
 
+			scale = random.random()
+			ind = random.randint(0, 1)
+			bm[ind] = [n * scale for n in bm[ind]]
+
 			# check conditions, randomize start 
 			rangeArrs = []
-			if study:
-				should_continue = False
-				for i in range(2):
-					if min(bm[i]) == 0: 
-						extV = max(bm[i])
-						if extV < minDiff:
-							should_continue = True
-							break
+			# if study:
+			# should_continue = False
+			for i in range(2):
+				if min(bm[i]) == 0: 
+					extV = max(bm[i])
+					print(str(extV) + 'hi')
+					# if extV < minDiff:
+					# 	should_continue = True
+					# 	break
 
-						# shift up by random number not exceeding 1-extV
-						randV = random.random() * (1-extV)
-						bm[i] = [n + randV for n in bm[i]]
-					else: 
-						# range is [extV, 1]
-						extV = min(bm[i])
-						if extV > 1-minDiff:
-							should_continue = True
-							break
+					# shift up by random number not exceeding 1-extV
+					randV = random.random() * (1-extV)
+					bm[i] = [n + randV for n in bm[i]]
+				else: 
+					# range is [extV, 1]
+					extV = min(bm[i])
+					print('AHAHAHHAHHHH')
+					# if extV > 1-minDiff:
+					# 	should_continue = True
+					# 	break
 
-						# shift down by random number not exceeding extV
-						randV = random.random() * extV
-						bm[i] = [n - randV for n in bm[i]]
+					# shift down by random number not exceeding extV
+					randV = random.random() * extV
+					bm[i] = [n - randV for n in bm[i]]
 
-					if i == 0: 
-						scale = (random.random()*0.8+0.2)
-						bm[0] = [n * scale for n in bm[0]]
-					rangeArrs.append([min(bm[i]), max(bm[i])])
+				rangeArrs.append([min(bm[i]), max(bm[i])])
+			# Scale a random series by a random float > 0, float <= 1
 
-				if should_continue \
-					or abs(numpy.diff(rangeArrs[0]) - numpy.diff(rangeArrs[1])) < minDiff: 
-					continue # generate new series 
+			# if should_continue \
+			# 	or abs(numpy.diff(rangeArrs[0]) - numpy.diff(rangeArrs[1])) < minDiff: 
+			# 	continue # generate new series 
 
 			# regression
 			slope, intercept, r_value, p_value, std_err = stats.linregress(bm[0],bm[1])
 
+			# Avoid multiples of avoid_angles
+			if avoid_angles:
+				should_continue = False
+				for ang in range(0,8,avoid_angles):
+					rad = math.tan(ang*math.pi/8)
+					# print('Angle: ' + str(abs(get_angle(rad, slope))))
+					# print('Other angle: ' + str(180 - abs(get_angle(rad, slope))))
+					if (abs(get_angle(rad, slope)) < 10) or (180 - abs(get_angle(rad, slope)) < 10):
+						should_continue = True
+				if should_continue: continue
+
 			# pi/16 = 11.25, pi/8 = 22.5
-			# scale = ((random.random()-0.5)*0.6+0.5)
-			# bm[0] = [n * 0.6 for n in bm[0]]
 			if abs(slope) >= math.tan(slopeCoeffs[0]*math.pi/8) and abs(slope) <= math.tan(slopeCoeffs[1]*math.pi/8):
-				print(slope)
+				print('Slope: '+str(slope))
 				dataset['values1'] = bm[0].tolist()
 				dataset['values2'] = bm[1].tolist()
 				dataset['Blue range'] = rangeArrs[0]
@@ -208,9 +195,10 @@ def wfBm(N = 100, H1=8./10., corr=0.9, study=True, minDiff = 0, slopeCoeffs = [0
 				dataset['Green range'] = rangeArrs[1]
 				dataset['Green range value'] = rangeArrs[1][1] - rangeArrs[1][0] 
 				dataset['Regression slope'] = slope
+				dataset['Regression angle'] = get_angle(slope, 0)
 				dataset['Correlation'] = float(r)
 				dataset['Sign of correlation'] = numpy.sign(r)
-				if slope > 1:
+				if abs(slope) > 1:
 					dataset['Steepness'] = 'Steep'
 				else:
 					dataset['Steepness'] = 'Shallow'
@@ -225,11 +213,11 @@ def wfBm(N = 100, H1=8./10., corr=0.9, study=True, minDiff = 0, slopeCoeffs = [0
 def show(type = 'CS'):
 	rhos = []
 	for i in range(1000):
-		hurst = 0.2
+		hurst = 0.6
 		corr = 0.9
 		minDiff = 0.2
 		slopeCoeffs = [2,4]
-		bms = wfBm(H1= hurst, corr = corr, minDiff = 0.2, slopeCoeffs = slopeCoeffs)
+		bms = wfBm(H1= hurst, corr = corr, minDiff = 0.2, slopeCoeffs = slopeCoeffs, avoid_angles=2)
 		if type == "DALC":
 			plt.plot(bms['values1'])
 			plt.plot(bms['values2'])
