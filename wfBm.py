@@ -23,38 +23,38 @@ def get_angle(slope1, slope2):
 def save_data(num_stimuli):
 	for hurst in [0.2, 0.4, 0.6, 0.8]:
 		# Experiment A
-		# with open('data/H' + str(int(hurst*10)) + '-a.json', 'w') as outfile:
-		# 	datasetA = []
-		# 	for corr in [0.9, -0.9]:
-		# 		for i in range(num_stimuli):
-		# 			print(i)
-		# 			bms = wfBm(H1= hurst, corr=corr, avoid_angles = 4)
-		# 			datasetA.append(bms)
-		# 	json.dump(dataset, outfile)
-		# print('A done')
+		with open('data/H' + str(int(hurst*10)) + '-a.json', 'w') as outfile:
+			dataset = []
+			for corr in [0.9, -0.9]:
+				for i in range(num_stimuli):
+					print(i)
+					bms = wfBm(H1= hurst, corr=corr, avoid_angles = 4)
+					dataset.append(bms)
+			json.dump(dataset, outfile)
+		print('A done')
 
-		# # Experiment B # ADD DALC
-		# for corr in [0.9, -0.9]:
-		# 	if corr > 0:
-		# 		corrLabel = 'positive'
-		# 	else:
-		# 		corrLabel = 'negative'
-		# 	with open('data/H' + str(int(hurst*10)) + '-b-' + corrLabel + '.json', 'w') as outfile:
-		# 		dataset= []
-		# 		for slopeCoeffs in [[2,4],[0,2]]:
-		# 			# Mix up steeps and shallows
-		# 			for i in range(num_stimuli):
-		# 				print(i)
-		# 				bms = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles = 2)
-		# 				dataset.append(bms)
-		# 		json.dump(dataset, outfile)
-		# print('B done')
+		# Experiment B # ADD DALC
+		for corr in [0.9, -0.9]:
+			if corr > 0:
+				corrLabel = 'positive'
+			else:
+				corrLabel = 'negative'
+			with open('data/H' + str(int(hurst*10)) + '-b-' + corrLabel + '.json', 'w') as outfile:
+				dataset= []
+				for slopeCoeffs in [[2,4],[0,2]]:
+					# Mix up steeps and shallows
+					for i in range(num_stimuli):
+						print(i)
+						bms = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles = 2)
+						dataset.append(bms)
+				json.dump(dataset, outfile)
+		print('B done')
 
 		# Experiment C # ADD DALC
-		for corr in [-0.9]:
-			for sensLabel in ['shallow']:
+		for corr in [-0.9, 0.9]:
+			for sensLabel in ['slower', 'faster']:
 				i = 0
-				slopeCoeffs = [2,4] if sensLabel == 'steep' else [0,2]
+				slopeCoeffs = [2,4] if sensLabel == 'slower' else [0,2]
 				if corr > 0:
 					corrLabel = 'positive'
 				else:
@@ -124,14 +124,14 @@ def wfBm(N = 100, H1=8./10., corr=0.9, minDiff = 0, slopeCoeffs = [0,4], DALC = 
 				if minV < 0:
 					bm[i] = [v - minV for v in bm[i]]
 
-			lim = 30
+			lim = 100*H1/2
 			maxV = max([inner for outer in bm for inner in outer])
 			if maxV > lim: 
 				over_lim += 1
 				print(str(over_lim) + " over " + str(lim))
 				continue
-			bm[0] = [v/lim for v in bm[0]]
-			bm[1] = [v/lim for v in bm[1]]
+			bm[0] = [v/maxV for v in bm[0]]
+			bm[1] = [v/maxV for v in bm[1]]
 
 			scale = random.random()
 			ind = random.randint(0, 1)
@@ -190,10 +190,10 @@ def wfBm(N = 100, H1=8./10., corr=0.9, minDiff = 0, slopeCoeffs = [0,4], DALC = 
 				print('Slope: '+str(slope))
 				dataset['values1'] = bm[0].tolist()
 				dataset['values2'] = bm[1].tolist()
-				dataset['Blue range'] = rangeArrs[0]
-				dataset['Blue range value'] = rangeArrs[0][1] - rangeArrs[0][0]
-				dataset['Green range'] = rangeArrs[1]
-				dataset['Green range value'] = rangeArrs[1][1] - rangeArrs[1][0] 
+				dataset['Green range'] = rangeArrs[0]
+				dataset['Green range value'] = rangeArrs[0][1] - rangeArrs[0][0]
+				dataset['Blue range'] = rangeArrs[1]
+				dataset['Blue range value'] = rangeArrs[1][1] - rangeArrs[1][0] 
 				dataset['Regression slope'] = slope
 				dataset['Regression angle'] = get_angle(slope, 0)
 				dataset['Correlation'] = float(r)
