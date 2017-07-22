@@ -21,56 +21,57 @@ def get_angle(slope1, slope2):
     return numpy.degrees(angle)
 
 def save_data(num_stimuli):
-	for hurst in [0.2, 0.4, 0.6, 0.8]:
-		# Experiment A
-		with open('data/H' + str(int(hurst*10)) + '-a.json', 'w') as outfile:
-			dataset = []
-			for corr in [0.9, -0.9]:
-				for i in range(num_stimuli):
-					print(i)
-					bms = wfBm(H1= hurst, corr=corr, avoid_angles = 4)
-					dataset.append(bms)
-			json.dump(dataset, outfile)
-		print('A done')
-
-		# Experiment B # ADD DALC
-		for corr in [0.9, -0.9]:
-			if corr > 0:
-				corrLabel = 'positive'
-			else:
-				corrLabel = 'negative'
-			with open('data/H' + str(int(hurst*10)) + '-b-' + corrLabel + '.json', 'w') as outfile:
-				dataset= []
-				for slopeCoeffs in [[2,4],[0,2]]:
-					# Mix up steeps and shallows
+	for hurst in [0.2, 0.8]:
+		for nn in range(1,4):
+			# Experiment A
+			with open('data/H' + str(int(hurst*10)) + '-a' + '-' + str(nn) + '.json', 'w') as outfile:
+				dataset = []
+				for corr in [0.85, -0.85]:
 					for i in range(num_stimuli):
 						print(i)
-						bms = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles = 2)
+						bms = wfBm(H1= hurst, corr=corr, avoid_angles = 4)
 						dataset.append(bms)
 				json.dump(dataset, outfile)
-		print('B done')
+			print('A done')
 
-		# Experiment C # ADD DALC
-		for corr in [-0.9, 0.9]:
-			for sensLabel in ['slower', 'faster']:
-				i = 0
-				slopeCoeffs = [2,4] if sensLabel == 'slower' else [0,2]
+			# Experiment B # ADD DALC
+			for corr in [0.85, -0.85]:
 				if corr > 0:
 					corrLabel = 'positive'
 				else:
 					corrLabel = 'negative'
-				with open('data/H' + str(int(hurst*10)) + '-c-' + corrLabel + '-' + sensLabel + '.json', 'w') as outfile:
-					dataset=[]
-					while i < num_stimuli:
-						bms1 = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles=2)
-						bms2 = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles=2)
-
-						if get_angle(bms1['Regression slope'], bms2['Regression slope']) > 10:
+				with open('data/H' + str(int(hurst*10)) + '-b-' + corrLabel + '-' + str(nn) + '.json', 'w') as outfile:
+					dataset= []
+					for slopeCoeffs in [[2,4],[0,2]]:
+						# Mix up steeps and shallows
+						for i in range(num_stimuli):
 							print(i)
-							i += 1
-							dataset.append([bms1, bms2])
+							bms = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles = 2)
+							dataset.append(bms)
 					json.dump(dataset, outfile)
-		print('C done')
+			print('B done')
+
+			# Experiment C # ADD DALC
+			for corr in [-0.85, 0.85]:
+				for sensLabel in ['slower']:
+					i = 0
+					slopeCoeffs = [2,4] if sensLabel == 'slower' else [0,2]
+					if corr > 0:
+						corrLabel = 'positive'
+					else:
+						corrLabel = 'negative'
+					with open('data/H' + str(int(hurst*10)) + '-c-' + corrLabel + '-' + sensLabel + '-' + str(nn) + '.json', 'w') as outfile:
+						dataset=[]
+						while i < num_stimuli:
+							bms1 = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles=2)
+							bms2 = wfBm(H1= hurst, corr = corr, slopeCoeffs = slopeCoeffs, avoid_angles=2)
+
+							if get_angle(bms1['Regression slope'], bms2['Regression slope']) > 10:
+								print(i)
+								i += 1
+								dataset.append([bms1, bms2])
+						json.dump(dataset, outfile)
+			print('C done')
 
 def wfBm(N = 100, H1=8./10., corr=0.9, minDiff = 0, slopeCoeffs = [0,4], DALC = False, avoid_angles = None):
 	dataset = {}
@@ -118,24 +119,34 @@ def wfBm(N = 100, H1=8./10., corr=0.9, minDiff = 0, slopeCoeffs = [0,4], DALC = 
 		if abs(float(r) - corr) < 0.05:
 			count += 1
 			# print('Count: ' + str(count))
+
 			# normalize
 			for i in range(2):
 				minV = min(bm[i])
 				if minV < 0:
-					bm[i] = [v - minV for v in bm[i]]
+					bm[i] = [v - minV for v in bm[i]] # shift negative values up
 
 			lim = 100*H1/2
 			maxV = max([inner for outer in bm for inner in outer])
-			if maxV > lim: 
+			if maxV > lim: # it won't meet criteria if max is too large
 				over_lim += 1
 				print(str(over_lim) + " over " + str(lim))
 				continue
-			bm[0] = [v/maxV for v in bm[0]]
-			bm[1] = [v/maxV for v in bm[1]]
+			bm[0] = [v/maxV for v in bm[0]] # 0 to 1
+			bm[1] = [v/maxV for v in bm[1]] # 0 to 1
 
 			scale = random.random()
 			ind = random.randint(0, 1)
-			bm[ind] = [n * scale for n in bm[ind]]
+			bm[ind] = [n * scale for n in bm[ind]] # scale one series randomly
+
+			# Scale both the same, such that mindiff is 0.1
+			smaller_diff = min(numpy.diff([min(bm[0]), max(bm[0])]), numpy.diff([min(bm[1]), max(bm[1])]))
+
+			if smaller_diff < 0.1:
+				continue
+			scale = random.random() * (1 - (0.1/smaller_diff)) + (0.1/smaller_diff)
+			bm[0] = [n * scale for n in bm[0]] 
+			bm[1] = [n * scale for n in bm[1]] 
 
 			# check conditions, randomize start 
 			rangeArrs = []
@@ -144,14 +155,13 @@ def wfBm(N = 100, H1=8./10., corr=0.9, minDiff = 0, slopeCoeffs = [0,4], DALC = 
 			for i in range(2):
 				if min(bm[i]) == 0: 
 					extV = max(bm[i])
-					print(str(extV) + 'hi')
 					# if extV < minDiff:
 					# 	should_continue = True
 					# 	break
 
 					# shift up by random number not exceeding 1-extV
 					randV = random.random() * (1-extV)
-					bm[i] = [n + randV for n in bm[i]]
+					bm[i] = [n + randV for n in bm[i]] # shift the scaled series randomly
 				else: 
 					# range is [extV, 1]
 					extV = min(bm[i])
@@ -171,8 +181,9 @@ def wfBm(N = 100, H1=8./10., corr=0.9, minDiff = 0, slopeCoeffs = [0,4], DALC = 
 			# 	or abs(numpy.diff(rangeArrs[0]) - numpy.diff(rangeArrs[1])) < minDiff: 
 			# 	continue # generate new series 
 
+
 			# regression
-			slope, intercept, r_value, p_value, std_err = stats.linregress(bm[0],bm[1])
+			slope, intercept, r_value, p_value, std_err = stats.linregress(bm[1],bm[0])
 
 			# Avoid multiples of avoid_angles
 			if avoid_angles:
@@ -202,7 +213,7 @@ def wfBm(N = 100, H1=8./10., corr=0.9, minDiff = 0, slopeCoeffs = [0,4], DALC = 
 					dataset['Steepness'] = 'Steep'
 				else:
 					dataset['Steepness'] = 'Shallow'
-				
+				print('Steepness: ' +dataset['Steepness'])
 				return dataset
 			else:
 				continue
